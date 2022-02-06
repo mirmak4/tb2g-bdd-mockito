@@ -11,6 +11,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Assertions;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import org.mockito.BDDMockito;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -34,15 +41,10 @@ class SpecialitySDJpaServiceTest {
     @Test
     void findByIdTest() {
         Speciality speciality = new Speciality();
-
         when(specialtyRepository.findById(1L)).thenReturn(Optional.of(speciality));
-
         Speciality foundSpecialty = service.findById(1L);
-
         assertThat(foundSpecialty).isNotNull();
-
         verify(specialtyRepository).findById(anyLong());
-
     }
 
     @Test
@@ -82,5 +84,29 @@ class SpecialitySDJpaServiceTest {
     @Test
     void testDelete() {
         service.delete(new Speciality());
+    }
+    
+    @Test
+    void testDeleteThrows() {
+        doThrow(IllegalArgumentException.class)
+                .when(specialtyRepository).delete(any(Speciality.class));
+        assertThrows(IllegalArgumentException.class, () -> service.delete(new Speciality()));
+        verify(specialtyRepository).delete(any(Speciality.class));
+    }
+    
+    @Test
+    void deleteByIdThrows() {
+        willThrow(IllegalArgumentException.class)
+                .given(specialtyRepository).deleteById(null);
+        assertThrows(IllegalArgumentException.class, () -> service.deleteById(null));
+        then(specialtyRepository).should().deleteById(null);
+    }
+    
+    @Test
+    void findByIdThrows() {
+        given(specialtyRepository.findById(null)).willThrow(IllegalArgumentException.class);
+        assertThrows(IllegalArgumentException.class, 
+                () -> service.findById(null));
+        then(specialtyRepository).should().findById(null);
     }
 }
