@@ -11,14 +11,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import org.hamcrest.Matchers;
-import org.junit.jupiter.api.Assertions;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import org.mockito.BDDMockito;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.BDDMockito.then;
-import static org.mockito.BDDMockito.willThrow;
-import static org.mockito.Mockito.*;
+import static org.mockito.BDDMockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class SpecialitySDJpaServiceTest {
@@ -31,82 +26,153 @@ class SpecialitySDJpaServiceTest {
 
     @Test
     void testDeleteByObject() {
+        //given
         Speciality speciality = new Speciality();
 
+        //when
         service.delete(speciality);
 
-        verify(specialtyRepository).delete(any(Speciality.class));
+        //then
+        then(specialtyRepository).should().delete(any(Speciality.class));
     }
 
     @Test
     void findByIdTest() {
+        //given
         Speciality speciality = new Speciality();
-        when(specialtyRepository.findById(1L)).thenReturn(Optional.of(speciality));
+        given(specialtyRepository.findById(1L)).willReturn(Optional.of(speciality));
+
+        //when
         Speciality foundSpecialty = service.findById(1L);
+
+        //then
         assertThat(foundSpecialty).isNotNull();
-        verify(specialtyRepository).findById(anyLong());
+        then(specialtyRepository).should().findById(anyLong());
+        then(specialtyRepository).shouldHaveNoMoreInteractions();
     }
 
     @Test
     void deleteById() {
+        //given - none
+
+        //when
         service.deleteById(1l);
         service.deleteById(1l);
 
-        verify(specialtyRepository, times(2)).deleteById(1l);
+        //then
+        then(specialtyRepository).should(times(2)).deleteById(1L);
     }
 
     @Test
     void deleteByIdAtLeast() {
+        //given
+
+        //when
         service.deleteById(1l);
         service.deleteById(1l);
 
-        verify(specialtyRepository, atLeastOnce()).deleteById(1l);
+        //then
+        then(specialtyRepository).should(atLeastOnce()).deleteById(1L);
     }
 
     @Test
     void deleteByIdAtMost() {
+        //when
         service.deleteById(1l);
         service.deleteById(1l);
 
-        verify(specialtyRepository, atMost(5)).deleteById(1l);
+        //then
+        then(specialtyRepository).should(atMost(5)).deleteById(1L);
     }
 
     @Test
     void deleteByIdNever() {
+
+        //when
         service.deleteById(1l);
         service.deleteById(1l);
 
-        verify(specialtyRepository, atLeastOnce()).deleteById(1l);
+        //then
+        then(specialtyRepository).should(atLeastOnce()).deleteById(1L);
+        then(specialtyRepository).should(never()).deleteById(5L);
 
-        verify(specialtyRepository, never()).deleteById(5L);
     }
 
     @Test
     void testDelete() {
+        //when
         service.delete(new Speciality());
+
+        //then
+        then(specialtyRepository).should().delete(any());
     }
     
     @Test
-    void testDeleteThrows() {
-        doThrow(IllegalArgumentException.class)
-                .when(specialtyRepository).delete(any(Speciality.class));
-        assertThrows(IllegalArgumentException.class, () -> service.delete(new Speciality()));
-        verify(specialtyRepository).delete(any(Speciality.class));
+    void testDoThrow() {
+        doThrow(new RuntimeException("boom")).when(specialtyRepository).delete(any());
+
+        assertThrows(RuntimeException.class, () -> specialtyRepository.delete(new Speciality()));
+
+        verify(specialtyRepository).delete(any());
     }
     
     @Test
-    void deleteByIdThrows() {
-        willThrow(IllegalArgumentException.class)
-                .given(specialtyRepository).deleteById(null);
-        assertThrows(IllegalArgumentException.class, () -> service.deleteById(null));
-        then(specialtyRepository).should().deleteById(null);
+    void testFindByIDThrows() {
+        given(specialtyRepository.findById(1L)).willThrow(new RuntimeException("boom"));
+
+        assertThrows(RuntimeException.class, () -> service.findById(1L));
+
+        then(specialtyRepository).should().findById(1L);
     }
     
     @Test
-    void findByIdThrows() {
-        given(specialtyRepository.findById(null)).willThrow(IllegalArgumentException.class);
-        assertThrows(IllegalArgumentException.class, 
-                () -> service.findById(null));
-        then(specialtyRepository).should().findById(null);
+    void testDeleteBDD() {
+        willThrow(new RuntimeException("boom")).given(specialtyRepository).delete(any());
+
+        assertThrows(RuntimeException.class, () -> specialtyRepository.delete(new Speciality()));
+
+        then(specialtyRepository).should().delete(any());
+    }
+
+    @Test
+    void testSaveLambda() {
+        //given
+        final String MATCH_ME = "MATCH_ME";
+        Speciality speciality = new Speciality();
+        speciality.setDescription(MATCH_ME);
+
+        Speciality savedSpecialty = new Speciality();
+        savedSpecialty.setId(1L);
+
+        //need mock to only return on match MATCH_ME string
+        given(specialtyRepository.save(argThat(argument -> argument.getDescription().equals(MATCH_ME)))).willReturn(savedSpecialty);
+
+        //when
+        Speciality returnedSpecialty = service.save(speciality);
+
+        //then
+        assertThat(returnedSpecialty.getId()).isEqualTo(1L);
+}
+
+    @Test
+    void testSaveLambdaNoMatch() {
+        //given
+        final String MATCH_ME = "MATCH_ME";
+        Speciality speciality = new Speciality();
+        speciality.setDescription("Not a match");
+
+        Speciality savedSpecialty = new Speciality();
+        savedSpecialty.setId(1L);
+
+        //need mock to only return on match MATCH_ME string
+        lenient().when(specialtyRepository.save(
+                argThat(argument -> argument.getDescription().equals(MATCH_ME))))
+                .thenReturn(savedSpecialty);
+
+        //when
+        Speciality returnedSpecialty = service.save(speciality);
+
+        //then
+        assertNull(returnedSpecialty);
     }
 }
