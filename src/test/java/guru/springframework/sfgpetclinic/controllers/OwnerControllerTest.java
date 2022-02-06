@@ -32,6 +32,9 @@ import org.mockito.ArgumentMatchers;
 import static org.mockito.ArgumentMatchers.any;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -79,6 +82,7 @@ public class OwnerControllerTest {
         String created = controller.processCreationForm(owner, bind);
         // then
         assertThat(created).isEqualTo(expected);
+        verify(service).save(any(Owner.class));
     }
     
     @Test
@@ -92,6 +96,7 @@ public class OwnerControllerTest {
         String created = controller.processCreationForm(owner, result);
         // then
         assertThat(created).isEqualTo(expected);
+        verify(service).save(any(Owner.class));
     }
 
     @Test
@@ -110,6 +115,7 @@ public class OwnerControllerTest {
         String expected = "owners/createOrUpdateOwnerForm";
         String created = controller.processCreationForm(owner, bind);
         Assertions.assertThat(created).isEqualTo(expected);
+        verify(service, never()).save(any(Owner.class));
     }
     
     @Test
@@ -120,5 +126,6 @@ public class OwnerControllerTest {
         String expected = "owners/createOrUpdateOwnerForm";
         String created = controller.processCreationForm(owner, result);
         Assertions.assertThat(created).isEqualTo(expected);
+        verify(service, never()).save(any(Owner.class));
     }
 }
