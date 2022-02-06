@@ -18,9 +18,12 @@ package guru.springframework.sfgpetclinic.controllers;
 import guru.springframework.sfgpetclinic.fauxspring.BindingResult;
 import guru.springframework.sfgpetclinic.fauxspring.Model;
 import guru.springframework.sfgpetclinic.fauxspring.ModelAndView;
+import guru.springframework.sfgpetclinic.fauxspring.ModelMapImpl;
 import guru.springframework.sfgpetclinic.fauxspring.WebDataBinder;
 import guru.springframework.sfgpetclinic.model.Owner;
 import guru.springframework.sfgpetclinic.services.OwnerService;
+import java.util.ArrayList;
+import java.util.List;
 import org.assertj.core.api.Assertions;
 import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,8 +31,10 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -127,5 +132,59 @@ public class OwnerControllerTest {
         String created = controller.processCreationForm(owner, result);
         Assertions.assertThat(created).isEqualTo(expected);
         verify(service, never()).save(any(Owner.class));
+    }
+    
+    @Test
+    public void processFindFormZeroResultsWithWildcard() {
+        // given
+        Owner owner = new Owner(1L, "Mati", "Maks");
+        String expected = "%Maks%";
+        List<Owner> results = new ArrayList<>();
+        ArgumentCaptor<String> nameCapture = ArgumentCaptor.forClass(String.class);
+        // when
+        when(service.findAllByLastNameLike(nameCapture.capture()))
+                .thenReturn(results);
+        String found = controller.processFindForm(owner, result, null);
+        // then
+        assertThat(nameCapture.getValue()).isEqualToIgnoringCase(expected);
+        verify(result).rejectValue(anyString(), anyString(), anyString());
+        assertThat(found).isEqualToIgnoringCase("owners/findOwners");
+    }
+    
+    @Test
+    public void processFindFormSingleResultWithWildcard() {
+        // given
+        Owner owner = new Owner(1L, "Mati", "Maks");
+        String expected = "%Maks%";
+        List<Owner> results = new ArrayList<>();
+        results.add(owner);
+        ArgumentCaptor<String> nameCapture = ArgumentCaptor.forClass(String.class);
+        // when
+        when(service.findAllByLastNameLike(nameCapture.capture()))
+                .thenReturn(results);
+        String found = controller.processFindForm(owner, result, null);
+        // then
+        assertThat(nameCapture.getValue()).isEqualToIgnoringCase(expected);
+        assertThat(found).isEqualToIgnoringCase("redirect:/owners/1");
+    }
+    
+    @Test
+    public void processFindFormMultipleResultsWithWildcard() {
+        // given
+        Owner owner = new Owner(1L, "Mati", "Maks");
+        ModelMapImpl model = new ModelMapImpl();
+        String expected = "%Maks%";
+        List<Owner> results = new ArrayList<>();
+        results.add(owner);
+        results.add(new Owner(2L, "Andy", "SineD"));
+        ArgumentCaptor<String> nameCapture = ArgumentCaptor.forClass(String.class);
+        // when
+        when(service.findAllByLastNameLike(nameCapture.capture()))
+                .thenReturn(results);
+        String found = controller.processFindForm(owner, result, model);
+        // then
+        assertThat(nameCapture.getValue()).isEqualToIgnoringCase(expected);
+        assertThat(found).isEqualToIgnoringCase("owners/ownersList");
+        assertThat(model.getMap()).containsKey("selections");
     }
 }
