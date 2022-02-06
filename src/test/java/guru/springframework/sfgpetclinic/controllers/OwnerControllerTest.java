@@ -187,4 +187,20 @@ public class OwnerControllerTest {
         assertThat(found).isEqualToIgnoringCase("owners/ownersList");
         assertThat(model.getMap()).containsKey("selections");
     }
+    
+    @Test
+    public void processFindFormWithNullWildcard() {
+        // given
+        Owner owner = new Owner(1L, "Mati", null);
+        String expected = "%%";
+        List<Owner> results = new ArrayList<>();
+        ArgumentCaptor<String> nameCapture = ArgumentCaptor.forClass(String.class);
+        // when
+        when(service.findAllByLastNameLike(nameCapture.capture()))
+                .thenReturn(results);
+        String found = controller.processFindForm(owner, result, null);
+        // then
+        assertThat(nameCapture.getValue()).isEqualToIgnoringCase(expected);
+        assertThat(found).isEqualToIgnoringCase("owners/findOwners");
+    }
 }
