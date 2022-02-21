@@ -18,7 +18,7 @@ import static org.mockito.BDDMockito.*;
 @ExtendWith(MockitoExtension.class)
 class SpecialitySDJpaServiceTest {
 
-    @Mock
+    @Mock(lenient = true)
     SpecialtyRepository specialtyRepository;
 
     @InjectMocks
